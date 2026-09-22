@@ -24,6 +24,13 @@ ILANG
   structured_data: deal 页用 Offer 加 BreadcrumbList，provider 页用 Service 加 AggregateOffer，列表页用 ItemList。
   update_frequency: every 6 hours by GitHub Actions cron.
 
+::MODULE{AFFILIATE|title:联盟变现规则 build.py 真的读这一节}
+  programs: 只接 CJ ShareASale Impact 这类公开联盟平台 按它们的公开条款办
+  slot: PROVIDERS 每行第四个字段就是联盟链接 留空则用厂商官方裸链
+  pick: 优先挑留得住客户的offer 管理型主机 按年抽成 而不是一次性低价
+  disclosure: Some outbound links on this site are affiliate links. If you buy through one, this site may earn a commission at no extra cost to you. Prices and terms always come from the provider's own public page.
+
 ::RULE{抓不到 price=>这条不写 price 字段 也不写进结构化数据 不许拿估的填}
 ::RULE{valid_until 已过=>status 标 expired 页面标过期 结构化数据用 OutOfStock 且不写 priceValidUntil 不许留着冒充有效}
-::BOUNDARY{never:编优惠 编价格 编佣金|scope:permanent}
+::RULE{disclosure 只在页面里真的出现联盟链接时才渲染 没有联盟链接就不声明}
+::BOUNDARY{never:编优惠 编价格 编佣金 品牌词竞价 cookie 注入 自买自推|scope:permanent}

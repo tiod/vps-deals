@@ -50,6 +50,8 @@
     table { width:100%; border-collapse:collapse; background:var(--white); border:1px solid var(--line); border-radius:8px; overflow:hidden; }
     th, td { padding:12px; border-bottom:1px solid var(--line); text-align:left; vertical-align:top; }
     footer { border-top:1px solid var(--line); color:var(--muted); font-size:13px; padding:20px; text-align:center; }
+    footer p { margin:0 auto; max-width:820px; }
+    .disclosure { margin-bottom:10px; font-size:12px; }
     @media (max-width: 760px) { .hero { grid-template-columns:1fr; } .nav { align-items:flex-start; flex-direction:column; } dl { grid-template-columns:1fr; } }
   </style>
   $json_ld
@@ -62,6 +64,6 @@
     </nav>
   </header>
   <main>$body</main>
-  <footer>Generated at $generated_at. Site rules are described with the I-Lang protocol in .ilang/site.ilang; protocol reference: ilang.ai.</footer>
+  <footer>$disclosure<p>Generated at $generated_at. Every price and date on this site is read from the provider's own public page; the source URL and fetch time are listed on each offer page. Site rules are described with the I-Lang protocol in .ilang/site.ilang; protocol reference: ilang.ai.</p></footer>
 </body>
 </html>

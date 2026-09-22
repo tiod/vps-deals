@@ -109,6 +109,17 @@ def load_template(name: str) -> Template:
     return Template((TEMPLATE_DIR / name).read_text(encoding="utf-8"))
 
 
+def parse_disclosure(path: Path) -> str:
+    """联盟声明文案从 site.ilang 的 AFFILIATE 节读，不硬编码在代码里。"""
+    match = re.search(r"^\s*disclosure:\s*(.+?)\s*$", path.read_text(encoding="utf-8"), re.M)
+    return match.group(1) if match else ""
+
+
+def has_affiliate_link(offers: list[dict]) -> bool:
+    """offer_url 与 source_url 不一致，说明这一条挂的是联盟链接。"""
+    return any(str(o.get("offer_url", "")) != str(o.get("source_url", "")) for o in offers)
+
+
 def canonical(base: str, path: str = "") -> str:
     return f"{base.rstrip('/')}/{path.lstrip('/')}".rstrip("/") + ("/" if path and not Path(path).suffix else "")
 
@@ -277,10 +288,11 @@ def item_list_json_ld(items: list[tuple[str, str]]) -> dict:
 
 
 def layout(site: dict[str, str], title: str, description: str, body: str, canonical_url: str,
-           og_image: str, json_ld: list[dict] | None = None) -> str:
+           og_image: str, json_ld: list[dict] | None = None, disclosure: str = "") -> str:
     ld = "\n".join(
         f'<script type="application/ld+json">{json.dumps(item, ensure_ascii=False)}</script>' for item in (json_ld or [])
     )
+    disclosure_html = f'<p class="disclosure">{clean(disclosure)}</p>' if disclosure else ""
     return load_template("base.html").safe_substitute(
         brand=clean(site.get("brand", "vps-deals")),
         niche=clean(site.get("niche", "VPS hosting deals")),
@@ -292,6 +304,7 @@ def layout(site: dict[str, str], title: str, description: str, body: str, canoni
         og_site_name=clean(site.get("brand", "vps-deals")),
         json_ld=ld,
         body=body,
+        disclosure=disclosure_html,
         generated_at=clean(datetime.now(timezone.utc).replace(microsecond=0).isoformat()),
     )
 
@@ -363,6 +376,8 @@ def main() -> int:
     }
     active_count = sum(1 for offer in offers if not is_expired(offer))
     provider_names = sorted({str(offer.get("provider", "Provider")) for offer in offers})
+    # 只有在页面里真的挂了联盟链接时才声明，没有就不声明
+    disclosure = parse_disclosure(CONFIG_PATH) if has_affiliate_link(offers) else ""
 
     # ---------------------------------------------------------------- index
     cards = "\n".join(offer_card(offer, detail_paths[idx]) for idx, offer in enumerate(offers)) or \
@@ -383,7 +398,7 @@ def main() -> int:
         providers=str(len(provider_names)),
     )
     item_links = [(str(offer.get("title")), canonical(base_url, detail_paths[idx])) for idx, offer in enumerate(offers)]
-    write(SITE_DIR / "index.html", layout(site, index_title, index_desc, index_body, index_url, index_og, [item_list_json_ld(item_links)]))
+    write(SITE_DIR / "index.html", layout(site, index_title, index_desc, index_body, index_url, index_og, [item_list_json_ld(item_links)], disclosure))
 
     # ------------------------------------------------------------- provider
     provider_groups: dict[str, list[tuple[int, dict]]] = {}
@@ -424,7 +439,7 @@ def main() -> int:
                 "offerCount": len(prices),
                 "priceCurrency": currency,
             }
-        write(SITE_DIR / provider_path, layout(site, provider_title, provider_desc, body, provider_url, provider_og, [aggregate]))
+        write(SITE_DIR / provider_path, layout(site, provider_title, provider_desc, body, provider_url, provider_og, [aggregate], disclosure))
 
     # ----------------------------------------------------------------- deal
     for idx, offer in enumerate(offers):
@@ -475,7 +490,7 @@ def main() -> int:
         write(
             SITE_DIR / detail_path,
             layout(site, deal_title, deal_desc, body, detail_url, deal_og,
-                   [offer_json_ld(offer, detail_url), breadcrumbs]),
+                   [offer_json_ld(offer, detail_url), breadcrumbs], disclosure),
         )
 
     # -------------------------------------------------------------- compare
@@ -497,7 +512,7 @@ def main() -> int:
         SITE_DIR / "compare.html",
         layout(site, f"Compare {niche}: {active_count} offers ({month})",
                f"Side-by-side table of {len(offers)} public {niche} offers extracted from official pages. Unverified prices are marked.",
-               compare_body, compare_url, compare_og, [item_list_json_ld(item_links)]),
+               compare_body, compare_url, compare_og, [item_list_json_ld(item_links)], disclosure),
     )
 
     # ------------------------------------------------------- sitemap / robots

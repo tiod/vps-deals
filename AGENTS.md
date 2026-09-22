@@ -19,7 +19,14 @@ ILANG
 ::MODULE{CONFIG}
   .ilang/site.ilang 是站点配置唯一真源。
   scraper.py 和 build.py 都必须从该文件读取品牌、细分、域名和厂商清单。
+  PROVIDERS 每行第四字段是联盟链接，留空则用官方裸链。
+  AFFILIATE 节的 disclosure 文案由 build.py 读取渲染，没有联盟链接就不渲染。
   判据: 改 site.ilang 里一家厂商，重跑 scraper.py 加 build.py，site/ 就该变。
+
+::MODULE{MONETIZE}
+  只接公开联盟平台 CJ ShareASale Impact 这类，按公开条款办。
+  联盟链接写在 site.ilang 的第四字段，不写在代码里。
+  禁止 品牌词竞价 cookie 注入 自买自推。
 
 ::MODULE{OPERATIONS}
   本地更新: python scraper.py 然后 python build.py。
