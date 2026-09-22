@@ -1,0 +1,93 @@
+{
+  "generated_at": "2026-09-22T10:40:15+00:00",
+  "site": {
+    "brand": "vps-deals",
+    "niche": "VPS hosting deals",
+    "locale": "en-US",
+    "domain": "https://vps-deals.pages.dev"
+  },
+  "offers": [
+    {
+      "provider": "IONOS",
+      "provider_homepage": "https://www.ionos.com",
+      "title": "Cheap VPS",
+      "offer_url": "https://www.ionos.com/servers/cheap-vps",
+      "source_url": "https://www.ionos.com/servers/cheap-vps",
+      "fetched_at": "2026-09-22T10:40:15+00:00",
+      "status": "active",
+      "price": "2",
+      "currency": "USD",
+      "description": "Affordable VPS hosting » 24/7 support ✓ US data centers ✓ Free trial for 30 days ✓ Personal consultant ✓ Dedicated resources ✓"
+    },
+    {
+      "provider": "OVHcloud",
+      "provider_homepage": "https://www.ovhcloud.com",
+      "title": "VPS",
+      "offer_url": "https://www.ovhcloud.com/en/vps/",
+      "source_url": "https://www.ovhcloud.com/en/vps/",
+      "fetched_at": "2026-09-22T10:40:15+00:00",
+      "status": "active",
+      "price": "4.54",
+      "currency": "USD",
+      "description": "Migrate to the cloud with our VPS – all the advantages of a dedicated server at a lower price. Up to 8 vCores, 32 GB RAM, 640 GB NVMe, unlimited traffic."
+    },
+    {
+      "provider": "Hetzner",
+      "provider_homepage": "https://www.hetzner.com",
+      "title": "Affordable Cloud Hosting Services",
+      "offer_url": "https://www.hetzner.com/cloud/",
+      "source_url": "https://www.hetzner.com/cloud/",
+      "fetched_at": "2026-09-22T10:40:15+00:00",
+      "status": "active",
+      "description": "Cloud-hosting provider for developers & teams. Scalable cloud hosting services – join 400,000+ customers ✓ GDPR-compliant"
+    },
+    {
+      "provider": "ScalaHosting",
+      "provider_homepage": "https://www.scalahosting.com",
+      "title": "MANAGED CLOUD HOSTING",
+      "offer_url": "https://www.scalahosting.com/vps-hosting.html",
+      "source_url": "https://www.scalahosting.com/vps-hosting.html",
+      "fetched_at": "2026-09-22T10:40:15+00:00",
+      "status": "active",
+      "price": "29.95",
+      "currency": "USD",
+      "description": "Get top-rated managed cloud hosting with ScalaHosting. Boost your site’s speed, security, and scalability with NVMe SSD storage, free SSL, and 24/7 managed support."
+    },
+    {
+      "provider": "AWS Lightsail",
+      "provider_homepage": "https://aws.amazon.com",
+      "title": "Amazon Lightsail pricing",
+      "offer_url": "https://aws.amazon.com/lightsail/pricing/",
+      "source_url": "https://aws.amazon.com/lightsail/pricing/",
+      "fetched_at": "2026-09-22T10:40:15+00:00",
+      "status": "active",
+      "price": "5",
+      "currency": "USD"
+    },
+    {
+      "provider": "Atlantic.Net",
+      "provider_homepage": "https://www.atlantic.net",
+      "title": "High-Performance Cloud VPS Hosting with Full Root Control",
+      "offer_url": "https://www.atlantic.net/vps-hosting/",
+      "source_url": "https://www.atlantic.net/vps-hosting/",
+      "fetched_at": "2026-09-22T10:40:15+00:00",
+      "status": "active",
+      "price": "10.0",
+      "currency": "USD",
+      "description": "Launch a Cloud VPS in 30 seconds! RAID storage, easy one-click app install, DNS & private networking, all backed by 24/7 support."
+    },
+    {
+      "provider": "Alibaba Cloud ECS",
+      "provider_homepage": "https://www.alibabacloud.com",
+      "title": "Elastic Compute Service (ECS): Elastic & Secure Cloud Servers - Alibaba Cloud",
+      "offer_url": "https://www.alibabacloud.com/product/ecs",
+      "source_url": "https://www.alibabacloud.com/product/ecs",
+      "fetched_at": "2026-09-22T10:40:15+00:00",
+      "status": "active",
+      "price": "9.9",
+      "currency": "USD",
+      "description": "Alibaba Cloud Elastic Compute Service (ECS) offers high performance, elastic & secure virtual cloud servers with various instance types at cost-effective prices for all your cloud hosting needs."
+    }
+  ],
+  "errors": []
+}

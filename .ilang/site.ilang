@@ -1,0 +1,29 @@
+ILANG
+[TYPE:config][PROJECT:vps-deals][LANG:zh]
+
+::STATE{@SITE, brand:vps-deals, niche:VPS hosting deals, locale:en-US, domain:https://vps-deals.pages.dev}
+
+::MODULE{PROVIDERS|title:抓哪几家 这里改了站就变}
+  IONOS | https://www.ionos.com | https://www.ionos.com/servers/cheap-vps |
+  OVHcloud | https://www.ovhcloud.com | https://www.ovhcloud.com/en/vps/ |
+  Hetzner | https://www.hetzner.com | https://www.hetzner.com/cloud/ |
+  ScalaHosting | https://www.scalahosting.com | https://www.scalahosting.com/vps-hosting.html |
+  AWS Lightsail | https://aws.amazon.com | https://aws.amazon.com/lightsail/pricing/ |
+  Atlantic.Net | https://www.atlantic.net | https://www.atlantic.net/vps-hosting/ |
+  Alibaba Cloud ECS | https://www.alibabacloud.com | https://www.alibabacloud.com/product/ecs |
+
+::MODULE{FIELDS|title:每条优惠提取什么}
+  title price currency offer_url valid_until source_url fetched_at
+
+::MODULE{RENDER|title:页面渲染规则}
+  index: list current public offers, source URL, fetched date, and provider.
+  provider: group offers by provider with canonical URLs.
+  deal: one page per extracted offer with JSON-LD Offer when verified fields exist.
+  compare: ItemList comparison page for all currently discovered offers.
+  og_image: build.py 为每页生成 1200x630 的 og/<slug>.png 纯标准库 PNG 社交预览图。
+  structured_data: deal 页用 Offer 加 BreadcrumbList，provider 页用 Service 加 AggregateOffer，列表页用 ItemList。
+  update_frequency: every 6 hours by GitHub Actions cron.
+
+::RULE{抓不到 price=>这条不写 price 字段 也不写进结构化数据 不许拿估的填}
+::RULE{valid_until 已过=>status 标 expired 页面标过期 结构化数据用 OutOfStock 且不写 priceValidUntil 不许留着冒充有效}
+::BOUNDARY{never:编优惠 编价格 编佣金|scope:permanent}
