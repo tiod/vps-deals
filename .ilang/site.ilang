@@ -1,7 +1,7 @@
 ILANG
 [TYPE:config][PROJECT:vps-deals][LANG:zh]
 
-::STATE{@SITE, brand:vps-deals, niche:VPS hosting deals, locale:en-US, domain:https://vps-deals.pages.dev}
+::STATE{@SITE, brand:vps-deals, niche:VPS hosting deals, locale:en-US, domain:https://vps-deals.juhn-chen.workers.dev}
 
 ::MODULE{PROVIDERS|title:抓哪几家 这里改了站就变}
   IONOS | https://www.ionos.com | https://www.ionos.com/servers/cheap-vps |
