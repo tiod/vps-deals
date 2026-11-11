@@ -21,6 +21,9 @@ timestamped update: it shows the site is alive and gives the domain an operating
 4. `build.py` reads `.ilang/site.ilang` and `data/offers.json`.
 5. It generates `site/` — HTML pages, canonical tags, JSON-LD, `sitemap.xml`, `robots.txt`, and
    1200x630 social preview images in `site/og/`.
+6. `scraper.py` writes `data/social_queue.json` with at most one newly discovered, explicitly
+   discounted offer for human review on GitHub. It never posts automatically and never infers a
+   discount from two prices.
 
 No runtime API keys, server, database, paid inference, or third-party packages are required —
 Python standard library only.
@@ -62,7 +65,9 @@ Name | homepage | offer page / sitemap / feed | affiliate link (blank = use the 
 ## GitHub Actions
 
 `.github/workflows/update.yml` runs every six hours and commits refreshed `data/offers.json` plus
-`site/` when anything changes.
+`data/social_queue.json` and `site/` when anything changes. The repository must remain public so
+its update history and source links are inspectable. X and Facebook publishing are intentionally
+not enabled in this first version.
 
 ## Cloudflare Pages
 

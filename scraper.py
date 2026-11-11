@@ -21,6 +21,7 @@ from urllib.robotparser import RobotFileParser
 ROOT = Path(__file__).resolve().parent
 CONFIG_PATH = ROOT / ".ilang" / "site.ilang"
 DATA_PATH = ROOT / "data" / "offers.json"
+SOCIAL_QUEUE_PATH = ROOT / "data" / "social_queue.json"
 USER_AGENT = "static-coupon-scraper/1.0"
 
 
@@ -189,11 +190,27 @@ def extract_valid_until(text: str) -> str | None:
     return None
 
 
+def extract_discount_percent(text: str) -> str | None:
+    """只接受来源页面明确写出的百分比折扣，不从价格反推。"""
+    patterns = [
+        r"(?:save|saving|discount|off)\s*(\d{1,2})\s*%",
+        r"(\d{1,2})\s*%\s*(?:off|discount|saving)",
+    ]
+    for pattern in patterns:
+        match = re.search(pattern, text, re.I)
+        if match and 0 < int(match.group(1)) <= 100:
+            return match.group(1)
+    return None
+
+
 def offer_title(provider: Provider, parser: TextExtractor) -> str:
     candidates = parser.h1 + [parser.title, parser.meta_description]
     for candidate in candidates:
         if candidate:
-            return clean(candidate)[:140]
+            title = clean(candidate)
+            if provider.name.lower() not in title.lower():
+                title = f"{provider.name} {title}"
+            return title[:140]
     return f"{provider.name} public VPS offer page"
 
 
@@ -204,6 +221,7 @@ def scrape_provider(provider: Provider, fetched_at: str) -> dict[str, object]:
     text = clean(" ".join(parser.visible_text))
     price, currency = extract_price(text)
     valid_until = extract_valid_until(text)
+    discount_percent = extract_discount_percent(text)
     target_url = provider.affiliate_url or provider.source_url
     title = offer_title(provider, parser)
     today = datetime.now(timezone.utc).date().isoformat()
@@ -222,6 +240,8 @@ def scrape_provider(provider: Provider, fetched_at: str) -> dict[str, object]:
         offer["currency"] = currency
     if valid_until:
         offer["valid_until"] = valid_until
+    if discount_percent:
+        offer["discount_percent"] = discount_percent
     if parser.meta_description:
         offer["description"] = parser.meta_description[:240]
     return offer
@@ -232,11 +252,22 @@ def main() -> int:
     set_user_agent(str(config["site"].get("domain", "")))
     providers: Iterable[Provider] = config["providers"]  # type: ignore[assignment]
     fetched_at = datetime.now(timezone.utc).replace(microsecond=0).isoformat()
+    previous_offers: list[dict[str, object]] = []
+    if DATA_PATH.exists():
+        try:
+            previous_offers = json.loads(DATA_PATH.read_text(encoding="utf-8")).get("offers", [])
+        except (OSError, json.JSONDecodeError):
+            previous_offers = []
     offers: list[dict[str, object]] = []
     errors: list[dict[str, str]] = []
+    seen: set[tuple[str, str, str]] = set()
     for provider in providers:
         try:
-            offers.append(scrape_provider(provider, fetched_at))
+            offer = scrape_provider(provider, fetched_at)
+            key = (str(offer.get("provider", "")), str(offer.get("title", "")), str(offer.get("currency", "")))
+            if key not in seen:
+                seen.add(key)
+                offers.append(offer)
         except (HTTPError, URLError, TimeoutError, RuntimeError) as exc:
             errors.append({"provider": provider.name, "source_url": provider.source_url, "error": str(exc)})
 
@@ -248,10 +279,46 @@ def main() -> int:
         "errors": errors,
     }
     DATA_PATH.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    write_social_queue(config["site"], previous_offers, offers, fetched_at)
     print(f"wrote {len(offers)} offers to {DATA_PATH}")
     if errors:
         print(f"{len(errors)} provider(s) failed; see data/offers.json", file=sys.stderr)
     return 0 if offers else 1
+
+
+def write_social_queue(site: dict[str, str], previous: list[dict[str, object]], current: list[dict[str, object]], fetched_at: str) -> None:
+    """生成 GitHub 可人工审核的队列；本脚本不向社交平台发帖。"""
+    previous_keys = {
+        (str(item.get("provider", "")), str(item.get("title", "")), str(item.get("source_url", "")))
+        for item in previous
+    }
+    new_offers = [
+        item for item in current
+        if (str(item.get("provider", "")), str(item.get("title", "")), str(item.get("source_url", ""))) not in previous_keys
+    ]
+    candidates = [item for item in new_offers if str(item.get("discount_percent", "")).isdigit()]
+    candidates.sort(key=lambda item: int(str(item["discount_percent"])), reverse=True)
+    items: list[dict[str, object]] = []
+    if candidates:
+        offer = candidates[0]
+        brand = site.get("brand", "")
+        domain = site.get("domain", "").rstrip("/")
+        items.append({
+            "channel": "github",
+            "status": "queued",
+            "text": f"{offer['provider']} lists {offer['discount_percent']}% off: {offer['title']}. See {domain} for source-linked details.",
+            "site_url": domain,
+            "source_url": offer.get("source_url"),
+            "provider": offer.get("provider"),
+            "discount_percent": offer.get("discount_percent"),
+            "brand": brand,
+        })
+    queue = {
+        "generated_at": fetched_at,
+        "policy": "GitHub queue only; human review required; no automatic social posting.",
+        "items": items,
+    }
+    SOCIAL_QUEUE_PATH.write_text(json.dumps(queue, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
 
 if __name__ == "__main__":

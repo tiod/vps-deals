@@ -13,7 +13,7 @@ ILANG
   Alibaba Cloud ECS | https://www.alibabacloud.com | https://www.alibabacloud.com/product/ecs |
 
 ::MODULE{FIELDS|title:每条优惠提取什么}
-  title price currency offer_url valid_until source_url fetched_at
+  title price currency discount_percent offer_url valid_until source_url fetched_at
 
 ::MODULE{RENDER|title:页面渲染规则}
   index: list current public offers, source URL, fetched date, and provider.
@@ -23,6 +23,11 @@ ILANG
   og_image: build.py 为每页生成 1200x630 的 og/<slug>.png 纯标准库 PNG 社交预览图。
   structured_data: deal 页用 Offer 加 BreadcrumbList，provider 页用 Service 加 AggregateOffer，列表页用 ItemList。
   update_frequency: every 6 hours by GitHub Actions cron.
+
+::MODULE{SOCIAL|title:只生成 GitHub 审核队列}
+  github: 每次只从新抓到且来源明确写出百分比折扣的优惠中选最大一条。
+  queue: data/social_queue.json；只排队，不自动发到 X 或 Facebook。
+  rule: 没有明确 discount_percent 就保持空队列，不从价格反推折扣。
 
 ::MODULE{AFFILIATE|title:联盟变现规则 build.py 真的读这一节}
   programs: 只接 CJ ShareASale Impact 这类公开联盟平台 按它们的公开条款办

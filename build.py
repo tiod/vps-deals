@@ -9,8 +9,10 @@ from __future__ import annotations
 import html
 import json
 import re
+import shutil
 import struct
 import zlib
+from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from string import Template
@@ -23,6 +25,14 @@ SITE_DIR = ROOT / "site"
 OG_SUBDIR = "og"
 OG_WIDTH = 1200
 OG_HEIGHT = 630
+
+
+@dataclass(frozen=True)
+class ProviderConfig:
+    name: str
+    homepage: str
+    source_url: str
+    affiliate_url: str = ""
 
 # ---------------------------------------------------------------- og 图字体
 # 5x7 点阵大写字体，纯标准库绘制，运行时零依赖零推理
@@ -95,14 +105,27 @@ def slugify(value: str) -> str:
     return slug or "offer"
 
 
-def parse_site(path: Path) -> dict[str, str]:
+def parse_config(path: Path) -> tuple[dict[str, str], list[ProviderConfig]]:
     raw = path.read_text(encoding="utf-8")
     match = re.search(r"::STATE\{@SITE,\s*(.*?)\}", raw, re.S)
     site: dict[str, str] = {}
     if match:
         for key, value in re.findall(r"(\w+):([^,\}]+)", match.group(1)):
             site[key.strip()] = value.strip()
-    return site
+    providers: list[ProviderConfig] = []
+    in_providers = False
+    for line in raw.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("::MODULE{PROVIDERS"):
+            in_providers = True
+            continue
+        if in_providers and stripped.startswith("::"):
+            break
+        if in_providers and "|" in stripped:
+            parts = [part.strip() for part in stripped.split("|")]
+            if len(parts) >= 3 and all(parts[:3]):
+                providers.append(ProviderConfig(parts[0], parts[1], parts[2], parts[3] if len(parts) > 3 else ""))
+    return site, providers
 
 
 def load_template(name: str) -> Template:
@@ -351,7 +374,7 @@ def write_bytes(path: Path, content: bytes) -> None:
 
 
 def main() -> int:
-    site = parse_site(CONFIG_PATH)
+    site, configured_providers = parse_config(CONFIG_PATH)
     data = json.loads(DATA_PATH.read_text(encoding="utf-8")) if DATA_PATH.exists() else {"offers": [], "generated_at": ""}
     offers: list[dict] = data.get("offers", [])
     offers.sort(key=lambda o: (is_expired(o), str(o.get("provider", ""))))
@@ -359,7 +382,10 @@ def main() -> int:
     niche = site.get("niche", "VPS hosting deals")
     base_url = site.get("domain", "https://vps-deals.pages.dev").rstrip("/")
     month = month_label()
-    SITE_DIR.mkdir(exist_ok=True)
+    # site/ is entirely generated output; remove stale pages when a title/slug changes.
+    if SITE_DIR.exists():
+        shutil.rmtree(SITE_DIR)
+    SITE_DIR.mkdir(parents=True, exist_ok=True)
 
     og_paths: dict[str, str] = {}
 
@@ -375,7 +401,7 @@ def main() -> int:
         for index, offer in enumerate(offers)
     }
     active_count = sum(1 for offer in offers if not is_expired(offer))
-    provider_names = sorted({str(offer.get("provider", "Provider")) for offer in offers})
+    provider_names = [provider.name for provider in configured_providers]
     # 只有在页面里真的挂了联盟链接时才声明，没有就不声明
     disclosure = parse_disclosure(CONFIG_PATH) if has_affiliate_link(offers) else ""
 
@@ -401,10 +427,11 @@ def main() -> int:
     write(SITE_DIR / "index.html", layout(site, index_title, index_desc, index_body, index_url, index_og, [item_list_json_ld(item_links)], disclosure))
 
     # ------------------------------------------------------------- provider
-    provider_groups: dict[str, list[tuple[int, dict]]] = {}
+    provider_groups: dict[str, list[tuple[int, dict]]] = {provider.name: [] for provider in configured_providers}
     for idx, offer in enumerate(offers):
         provider_groups.setdefault(str(offer.get("provider", "Provider")), []).append((idx, offer))
 
+    provider_configs = {provider.name: provider for provider in configured_providers}
     for provider, grouped in provider_groups.items():
         provider_path = f"providers/{slugify(provider)}.html"
         provider_url = canonical(base_url, provider_path)
@@ -418,17 +445,24 @@ def main() -> int:
             f"{price_hint}. Source links and fetch dates included."
         )
         provider_og = emit_og(f"provider-{provider}", f"{provider} {niche}", price_hint)
+        provider_config = provider_configs.get(provider)
+        provider_homepage = (provider_config.homepage if provider_config else "") or (grouped[0][1].get("provider_homepage", "") if grouped else "")
+        provider_cards = "\n".join(offer_card(offer, "../" + detail_paths[idx]) for idx, offer in grouped)
+        if not provider_cards:
+            provider_cards = '<p>No verified public offers were extracted yet. Check the official page below for current terms.</p>'
+        if provider_homepage:
+            provider_cards += f'<p><a class="button" href="{clean(provider_homepage)}">Official {clean(provider)} homepage</a></p>'
         body = load_template("provider.html").safe_substitute(
             provider=clean(provider),
             niche=clean(niche),
-            cards="\n".join(offer_card(offer, "../" + detail_paths[idx]) for idx, offer in grouped),
+            cards=provider_cards,
         )
         aggregate = {
             "@context": "https://schema.org",
             "@type": "Service",
             "name": f"{provider} {niche}",
             "serviceType": niche,
-            "provider": {"@type": "Organization", "name": provider, "url": grouped[0][1].get("provider_homepage")},
+            "provider": {"@type": "Organization", "name": provider, "url": provider_homepage},
             "url": provider_url,
         }
         if prices:
@@ -518,7 +552,7 @@ def main() -> int:
     # ------------------------------------------------------- sitemap / robots
     urls = [("index.html", data.get("generated_at", "")), ("compare.html", data.get("generated_at", ""))]
     urls += [(detail_paths[i], o.get("fetched_at", data.get("generated_at", ""))) for i, o in enumerate(offers)]
-    urls += [(f"providers/{slugify(provider)}.html", data.get("generated_at", "")) for provider in provider_groups]
+    urls += [(f"providers/{slugify(provider.name)}.html", data.get("generated_at", "")) for provider in configured_providers]
     sitemap = ['<?xml version="1.0" encoding="UTF-8"?>', '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
     for path, lastmod in urls:
         sitemap.append(f"  <url><loc>{clean(canonical(base_url, path))}</loc><lastmod>{clean(iso_date(str(lastmod)))}</lastmod></url>")
